@@ -83,6 +83,7 @@ set(MOC_HEADERS
     scenesettingspopup.h
     sceneviewer.h
     sceneviewercontextmenu.h
+    japanesepegbaroverlay.h
     scriptconsolepanel.h
     separatecolorspopup.h
     separatecolorsswatch.h
