@@ -140,6 +140,9 @@ jobs:
             -DANDROID_PLATFORM=android-24 \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="$JPEG_ANDROID_PREFIX" \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DWITH_TESTS=OFF \
+            -DWITH_TOOLS=OFF \
             -DENABLE_SHARED=OFF \
             -DENABLE_STATIC=ON \
             -DWITH_SIMD=OFF \
@@ -157,10 +160,11 @@ jobs:
         run: |
           set -euo pipefail
           EXTRA_ANDROID_PREFIX="$RUNNER_TEMP/tahoma-deps-arm64"
+          mkdir -p "$REPORT_DIR"
           bash "$GITHUB_WORKSPACE/ci-src/android/native-port/build-extra-deps-android.sh" \
             "$GITHUB_WORKSPACE/tahoma2d-src" \
             "$RUNNER_TEMP/tahoma-extra-deps-build" \
-            "$EXTRA_ANDROID_PREFIX"
+            "$EXTRA_ANDROID_PREFIX" 2>&1 | tee "$REPORT_DIR/extra-dependencies.log"
           echo "EXTRA_ANDROID_PREFIX=$EXTRA_ANDROID_PREFIX" >> "$GITHUB_ENV"
 
       - name: CMake configure, compile and deploy actual editor
