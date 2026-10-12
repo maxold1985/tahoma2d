@@ -58,6 +58,32 @@ echo "=== Installed Qt Android modules ==="
 find "$QT_ANDROID_PREFIX/lib/cmake" -maxdepth 1 -mindepth 1 \
      -type d -name 'Qt5*' -printf '%f\n' | sort
 
+# The Android NDK toolchain limits CMake package searches to the target
+# sysroot. Explicit Qt5 module directories keep host Qt libraries out while
+# allowing target Qt Android CMake packages to be discovered.
+QT_CMAKE_ROOT="$QT_ANDROID_PREFIX/lib/cmake"
+QT_MODULES=(
+    Core Gui Network OpenGL Svg Xml Script Widgets PrintSupport
+    LinguistTools Multimedia MultimediaWidgets SerialPort UiTools
+)
+QT_CMAKE_ARGS=()
+missing=0
+for module in "${QT_MODULES[@]}"; do
+    module_dir="$QT_CMAKE_ROOT/Qt5$module"
+    config="$module_dir/Qt5${module}Config.cmake"
+    if [ ! -f "$config" ]; then
+        echo "ERROR: missing Android Qt module: Qt5$module ($config)"
+        missing=1
+    else
+        QT_CMAKE_ARGS+=("-DQt5${module}_DIR=$module_dir")
+    fi
+done
+if [ "$missing" -ne 0 ]; then
+    echo "ERROR: Qt Android installation is missing required Tahoma2D modules."
+    exit 2
+fi
+QT_CMAKE_ARGS+=("-DQt5_DIR=$QT_CMAKE_ROOT/Qt5")
+
 echo "=== Known unfinished native-port dependencies ==="
 echo "The desktop editor needs Android ARM64 builds of OpenCV, GLEW,"
 echo "GLU/GLUT replacements, TIFF, PNG, JPEG, SuperLU, libmypaint and"
@@ -77,7 +103,8 @@ cmake -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_PREFIX_PATH="$QT_ANDROID_PREFIX" \
-    -DQt5_DIR="$QT_ANDROID_PREFIX/lib/cmake/Qt5" \
+    -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH \
+    "${QT_CMAKE_ARGS[@]}" \
     -DQT_PATH="$QT_ANDROID_PREFIX" \
     -DWITH_TRANSLATION=OFF \
     -DWITH_CANON=OFF \
