@@ -3,6 +3,12 @@ name: Tahoma2D Android ARM64 - Native C++ Port
 # Exactly one manual workflow. No push, pull_request, or schedule triggers.
 on:
   workflow_dispatch:
+    inputs:
+      decrypt_private_source:
+        description: "Decrypt codigo_privado.7z in the ephemeral runner before building"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -60,13 +66,36 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y ninja-build pkg-config unzip \
-            autoconf automake libtool gettext intltool libglib2.0-dev libboost1.74-dev
+            autoconf automake libtool gettext intltool libglib2.0-dev libboost1.74-dev p7zip-full
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-30" "build-tools;30.0.3" \
                      "ndk;21.4.7075529" "platform-tools"
           echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/21.4.7075529" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/21.4.7075529" >> "$GITHUB_ENV"
           echo "QT_ANDROID_PREFIX=$RUNNER_TEMP/Qt/5.15.2/android" >> "$GITHUB_ENV"
+
+      - name: Decrypt private source archive when explicitly requested
+        if: ${{ inputs.decrypt_private_source }}
+        shell: bash
+        env:
+          TAHOMA_ARCHIVE_PASSWORD: ${{ secrets.TAHOMA_ARCHIVE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          archive="$GITHUB_WORKSPACE/tahoma2d-src/codigo_privado.7z"
+          destination="$GITHUB_WORKSPACE/tahoma2d-src"
+          if [ ! -f "$archive" ]; then
+            echo "::error::Encrypted archive is missing: tahoma2d-src/codigo_privado.7z"
+            exit 2
+          fi
+          if [ -z "${TAHOMA_ARCHIVE_PASSWORD:-}" ]; then
+            echo "::error::Configure the TAHOMA_ARCHIVE_PASSWORD Actions secret first"
+            exit 2
+          fi
+          # Run only on a GitHub-hosted ephemeral runner. Never print the password.
+          7z t "-p$TAHOMA_ARCHIVE_PASSWORD" "$archive" -bso0 -bse1 -bsp0
+          7z x "-p$TAHOMA_ARCHIVE_PASSWORD" "$archive" "-o$destination" -y -bso0 -bse1 -bsp0
+          unset TAHOMA_ARCHIVE_PASSWORD
+          echo "Private source archive extracted in the temporary Actions workspace"
 
       - name: Qt 5.15.2 Android with QtScript and CMake 3.30
         shell: bash
