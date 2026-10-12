@@ -435,7 +435,7 @@ SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
       double angle = QInputDialog::getDouble(
           parent, tr("Peg Bar Rotation"), tr("Angle (degrees):"),
           selectedBar()->rotation(), -180.0, 180.0, 1, &ok);
-      if (ok) selectedBar()->setRotation(angle);
+      if (ok) selectedBar()->commitRotation(angle);
     });
 
     QAction *resetPosition = pegBarMenu->addAction(tr("Reset Peg Bar Position"));
@@ -443,7 +443,7 @@ SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
             [selectedBar]() { selectedBar()->resetPosition(); });
     QAction *resetRotation = pegBarMenu->addAction(tr("Reset Peg Bar Rotation"));
     connect(resetRotation, &QAction::triggered, parent,
-            [selectedBar]() { selectedBar()->resetRotation(); });
+            [selectedBar]() { selectedBar()->commitRotation(0.0); });
 
     QMenu *opacityMenu = pegBarMenu->addMenu(
         tr("Peg Bar Opacity (Previous / Next)"));
