@@ -71,6 +71,29 @@ jobs:
           test -f "$QT_ANDROID_PREFIX/lib/cmake/Qt5/Qt5Config.cmake"
           test -f "$QT_ANDROID_PREFIX/lib/cmake/Qt5Script/Qt5ScriptConfig.cmake"
 
+      - name: Install verified OpenCV 4.10 Android SDK (arm64-v8a)
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPENCV_BASE="$RUNNER_TEMP/opencv-android"
+          mkdir -p "$OPENCV_BASE"
+          curl --fail --location --retry 3 --retry-delay 5 \
+            --output "$OPENCV_BASE/opencv-android-sdk.zip" \
+            "https://github.com/opencv/opencv/releases/download/4.10.0/opencv-4.10.0-android-sdk.zip"
+          echo "464d55abe64b53af3aeb73197cf4620535abd909916d06e6a8b7c32712013966  $OPENCV_BASE/opencv-android-sdk.zip" | sha1sum --check -
+          unzip -q "$OPENCV_BASE/opencv-android-sdk.zip" -d "$OPENCV_BASE"
+          OPENCV_CONFIG="$(find "$OPENCV_BASE" -type f -name OpenCVConfig.cmake -print -quit)"
+          if [ -z "$OPENCV_CONFIG" ]; then
+            echo "::error::OpenCV Android SDK does not contain OpenCVConfig.cmake"
+            exit 1
+          fi
+          if [ -z "$(find "$OPENCV_BASE" -type f -path '*/arm64-v8a/*' -print -quit)" ]; then
+            echo "::error::OpenCV Android SDK does not contain arm64-v8a libraries"
+            exit 1
+          fi
+          echo "OpenCV_DIR=$(dirname "$OPENCV_CONFIG")" >> "$GITHUB_ENV"
+          echo "OpenCV Android CMake config: $OPENCV_CONFIG"
+
       - name: CMake configure, compile and deploy actual editor
         shell: bash
         run: |
