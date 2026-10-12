@@ -57,8 +57,14 @@ COMMON=(
 )
 
 echo "=== Cross-compiling SuperLU 4.1 and reference CBLAS for Android arm64-v8a ==="
-make -C "$WORK/CBLAS" --jobs=2 "${COMMON[@]}" single double complex complex16
-make -C "$WORK/SRC" --jobs=2 "${COMMON[@]}" single double complex complex16
+# Each precision updates the same .a file; serialize the four targets
+# to avoid concurrent llvm-ar writes while retaining parallel object builds.
+for precision in single double complex complex16; do
+    make -C "$WORK/CBLAS" --jobs=2 "${COMMON[@]}" "$precision"
+done
+for precision in single double complex complex16; do
+    make -C "$WORK/SRC" --jobs=2 "${COMMON[@]}" "$precision"
+done
 
 SUPERLU_ARCHIVE="$WORK/lib/libsuperlu_4.1.a"
 BLAS_ARCHIVE="$WORK/lib/libblas.a"
