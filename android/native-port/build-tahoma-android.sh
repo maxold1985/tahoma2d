@@ -135,9 +135,17 @@ ls -l "$SUPERLU_ANDROID_PREFIX/lib/libsuperlu_4.1.a" \
       "$SUPERLU_ANDROID_PREFIX/include/slu_Cnames.h"
 export SUPERLU_ROOT="$SUPERLU_ANDROID_PREFIX"
 
+if [ -z "${JPEG_ANDROID_PREFIX:-}" ] || \
+   [ ! -s "$JPEG_ANDROID_PREFIX/lib/libjpeg.a" ] || \
+   [ ! -f "$JPEG_ANDROID_PREFIX/include/jpeglib.h" ]; then
+    echo "ERROR: missing Android ARM64 libjpeg-turbo archive or headers."
+    exit 2
+fi
+echo "Android JPEG: $JPEG_ANDROID_PREFIX/lib/libjpeg.a"
+
 echo "=== Known unfinished native-port dependencies ==="
 echo "The desktop editor still needs Android ARM64 builds of GLEW,"
-echo "GLU/GLUT replacements, JPEG, libmypaint and"
+echo "GLU/GLUT replacements, libmypaint and"
 echo "other external libraries. Legacy glMatrixMode/glBegin calls still"
 echo "need a GLES3 implementation. The CMake errors show actual blockers."
 echo "No preview APK will be substituted if configure/compile fails."
@@ -158,6 +166,8 @@ cmake --fresh -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DOpenCV_DIR="$OpenCV_DIR" \
     -DTIFF_LIBRARY="$TIFF_ANDROID_PREFIX/lib/libtiff.a" \
     -DTIFF_INCLUDE_DIR="$TIFF_ANDROID_PREFIX/include" \
+    -DJPEG_LIBRARY:FILEPATH="$JPEG_ANDROID_PREFIX/lib/libjpeg.a" \
+    -DJPEG_INCLUDE_DIR:PATH="$JPEG_ANDROID_PREFIX/include" \
     -DPNG_LIBRARY="$PNG_ANDROID_PREFIX/lib/libpng16.a" \
     -DPNG_PNG_INCLUDE_DIR="$PNG_ANDROID_PREFIX/include" \
     -DSUPERLU_ROOT="$SUPERLU_ANDROID_PREFIX" \
