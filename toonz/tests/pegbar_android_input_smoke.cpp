@@ -1,6 +1,6 @@
 // Standalone smoke test for the Peg Bar overlay's mouse and touch paths.
 // This does NOT test or build the complete Tahoma2D Android application.
-#include "../toonz/sources/toonz/japanesepegbaroverlay.h"
+#include "../sources/toonz/japanesepegbaroverlay.h"
 
 #include <QApplication>
 #include <QDebug>
