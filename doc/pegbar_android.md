@@ -15,6 +15,8 @@ It does **not** yet produce a native Android APK for the entire editor.
 
 S Pen button mapping is provided by Qt/Android and varies with firmware; every device is not guaranteed to deliver a right-button QTabletEvent.
 
+On a Linux/Termux:X11 build, set TAHOMA_PEG_TOUCH_UI=1 before launching the editor to show the larger touch hit band and a Peg Bar menu button even though Qt identifies the runtime as Linux. This does not solve dependencies or OpenGL compatibility needed to build the editor in Termux.
+
 ## Native Android application (not complete)
 
 The main Tahoma2D CMake project currently configures Windows, macOS and generic Unix targets, not a packaged Android application. A complete Android port requires:
