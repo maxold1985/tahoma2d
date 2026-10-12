@@ -441,7 +441,12 @@ elseif(BUILD_ENV_APPLE)
     find_package(PNG REQUIRED)
     message("******* libpng:" ${PNG_LIBRARY})
     set(PNG_LIB ${PNG_LIBRARY})
-    find_package(GLEW)
+    # Android uses GLESv3: desktop GLEW is not available or compatible.
+    # This only removes the desktop dependency from CMake discovery.
+    # All GLEW calls and fixed-function GL usage still require GLES porting.
+    if(NOT BUILD_TARGET_ANDROID)
+        find_package(GLEW)
+    endif()
 
     find_package(SuperLU REQUIRED)
     set(SUPERLU_INCLUDE_DIR ${SUPERLU_INCLUDE_DIR}/superlu)
@@ -537,7 +542,11 @@ elseif(BUILD_ENV_UNIXLIKE)
     pkg_check_modules(LZMA liblzma)
     set(TIFF_LIB ${TIFF_LIBRARY} ${LZMA_LIBRARIES})
 
-    if(TARGET GLEW::GLEW)
+    if(BUILD_TARGET_ANDROID)
+        # GLES3 symbols come from Android's libGLESv3, not libGLEW.
+        set(GLEW_LIB "")
+        set(GLEW_FOUND FALSE)
+    elseif(TARGET GLEW::GLEW)
         set(GLEW_LIB GLEW::GLEW)
     elseif(GLEW_FOUND)
         set(GLEW_LIB ${GLEW_LIBRARIES})
