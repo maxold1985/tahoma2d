@@ -235,6 +235,13 @@ elseif(BUILD_ENV_UNIXLIKE)
 
     set(CMAKE_CXX_STANDARD 17)
 
+    # Qt5Core loads Qt5AndroidSupport.cmake during Qt package discovery.
+    # Configure deployment before the first Qt find_package on Android.
+    if(BUILD_TARGET_ANDROID)
+        set(QT_ANDROID_APPLICATION_BINARY Tahoma2D)
+        set(ANDROID_MIN_SDK_VERSION 24 CACHE STRING "Android min API level")
+        set(ANDROID_TARGET_SDK_VERSION 30 CACHE STRING "Android target API level")
+    endif()
     find_package(Qt5Widgets)
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
@@ -295,18 +302,8 @@ if(Qt5Core_VERSION VERSION_LESS QT_MINIMUM_VERSION)
 endif()
 unset(QT_MINIMUM_VERSION)
 
-if(BUILD_TARGET_ANDROID)
-    # Qt 5.15 Android CMake support supplies androiddeployqt APK target.
-    # Packaging is gated on successful real native application compilation.
-    set(QT_ANDROID_APPLICATION_BINARY Tahoma2D)
-    set(ANDROID_MIN_SDK_VERSION 24 CACHE STRING "Android min API level")
-    set(ANDROID_TARGET_SDK_VERSION 30 CACHE STRING "Android target API level")
-    if(EXISTS "${Qt5Core_DIR}/Qt5AndroidSupport.cmake")
-        include("${Qt5Core_DIR}/Qt5AndroidSupport.cmake")
-    else()
-        message(WARNING "Qt5AndroidSupport.cmake not provided; APK packaging unavailable")
-    endif()
-endif()
+# Qt5AndroidSupport.cmake is included automatically by Qt5CoreConfig.cmake
+# for Android; including it again creates duplicate 'apk' and 'aab' targets.
 
 
 
