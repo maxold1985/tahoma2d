@@ -93,6 +93,16 @@ cmake --install "$BUILD/json-build"
 test -s "$PREFIX/lib/libjson-c.a"
 test -f "$PREFIX/lib/pkgconfig/json-c.pc"
 pkg-config --exists json-c
+echo "Cross-compiling libdeflate 1.20 for Android ARM64"
+clone_tag https://github.com/ebiggers/libdeflate.git v1.20 "$BUILD/libdeflate-src"
+cmake_android -S "$BUILD/libdeflate-src" -B "$BUILD/libdeflate-build" \
+    -DLIBDEFLATE_BUILD_STATIC_LIB=ON -DLIBDEFLATE_BUILD_SHARED_LIB=OFF \
+    -DLIBDEFLATE_BUILD_GZIP=OFF -DLIBDEFLATE_BUILD_TESTS=OFF
+cmake --build "$BUILD/libdeflate-build" --parallel 2
+cmake --install "$BUILD/libdeflate-build"
+test -s "$PREFIX/lib/libdeflate.a"
+test -f "$PREFIX/include/libdeflate.h"
+test -f "$PREFIX/lib/pkgconfig/libdeflate.pc"
 echo "Cross-compiling libmypaint 1.6.1 for Android ARM64"
 clone_tag https://github.com/mypaint/libmypaint.git v1.6.1 "$BUILD/mypaint-src"
 (
@@ -112,11 +122,11 @@ mkdir -p "$BUILD/mypaint-build"
 test -s "$PREFIX/lib/libmypaint.a"
 test -f "$PREFIX/lib/pkgconfig/libmypaint.pc"
 echo "Checking ARM64 .pc modules and archive architectures"
-for pc in liblz4 freetype2 json-c libmypaint; do
+for pc in liblz4 freetype2 json-c libdeflate libmypaint; do
     pkg-config --exists "$pc"
     echo "$pc: $(pkg-config --modversion "$pc")"
 done
-for name in lz4 lzo2 freetype json-c mypaint; do
+for name in lz4 lzo2 freetype json-c deflate mypaint; do
     archive="$PREFIX/lib/lib$name.a"
     test -s "$archive"
     "$LLVM/llvm-readelf" -h "$archive" | grep AArch64 >/dev/null || {
@@ -124,4 +134,4 @@ for name in lz4 lzo2 freetype json-c mypaint; do
         exit 3
     }
 done
-echo "PASS: ARM64 LZ4, LZO, FreeType, json-c and libmypaint"
+echo "PASS: ARM64 LZ4, LZO, FreeType, json-c, libdeflate and libmypaint"
