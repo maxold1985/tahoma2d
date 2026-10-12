@@ -12,7 +12,10 @@ else()
 endif()
 
 include_directories(${LZO_PATH} ${LZO_PATH}/include)
-add_definitions(-DLZO_USE_ASM)
+# The generic Android arm64-v8a build uses portable C code, not x86 LZO ASM.
+if(NOT ANDROID)
+    add_definitions(-DLZO_USE_ASM)
+endif()
 add_executable(lzocompress  lzocompress.c)
 add_executable(lzodecompress lzodecompress.c)
 if(MSVC)
