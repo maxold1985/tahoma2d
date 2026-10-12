@@ -93,9 +93,22 @@ if [ -z "${OpenCV_DIR:-}" ] || [ ! -f "$OpenCV_DIR/OpenCVConfig.cmake" ]; then
 fi
 echo "OpenCV Android package: $OpenCV_DIR"
 
+# The custom FindTIFF.cmake only searches thirdparty desktop paths.
+# Supply the compiled Tahoma2D-specific Android library and matching headers
+# directly; never fall back to Ubuntu's host libTIFF.
+if [ -z "${TIFF_ANDROID_PREFIX:-}" ] || \
+   [ ! -s "$TIFF_ANDROID_PREFIX/lib/libtiff.a" ] || \
+   [ ! -f "$TIFF_ANDROID_PREFIX/include/tiffio.h" ] || \
+   [ ! -f "$TIFF_ANDROID_PREFIX/include/tiffconf.h" ]; then
+    echo "ERROR: missing Tahoma2D modified libTIFF ARM64 build."
+    echo "Cross-compile thirdparty/tiff-4.2.0 with build-tiff-android.sh first."
+    exit 2
+fi
+echo "Tahoma2D Android libTIFF: $TIFF_ANDROID_PREFIX/lib/libtiff.a"
+
 echo "=== Known unfinished native-port dependencies ==="
 echo "The desktop editor still needs Android ARM64 builds of GLEW,"
-echo "GLU/GLUT replacements, TIFF, PNG, JPEG, SuperLU, libmypaint and"
+echo "GLU/GLUT replacements, PNG, JPEG, SuperLU, libmypaint and"
 echo "other external libraries. Legacy glMatrixMode/glBegin calls still"
 echo "need a GLES3 implementation. The CMake errors show actual blockers."
 echo "No preview APK will be substituted if configure/compile fails."
@@ -114,6 +127,8 @@ cmake -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DCMAKE_PREFIX_PATH="$QT_ANDROID_PREFIX" \
     -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH \
     -DOpenCV_DIR="$OpenCV_DIR" \
+    -DTIFF_LIBRARY="$TIFF_ANDROID_PREFIX/lib/libtiff.a" \
+    -DTIFF_INCLUDE_DIR="$TIFF_ANDROID_PREFIX/include" \
     "${QT_CMAKE_ARGS[@]}" \
     -DQT_PATH="$QT_ANDROID_PREFIX" \
     -DWITH_TRANSLATION=OFF \
