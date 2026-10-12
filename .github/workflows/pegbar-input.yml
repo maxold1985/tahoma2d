@@ -13,6 +13,10 @@ on:
 jobs:
   qt5-touch-smoke:
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        touch_layout: ["0", "1"]
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -29,4 +33,5 @@ jobs:
       - name: Test mouse drag, multi-touch rotation and cancellation
         env:
           QT_QPA_PLATFORM: offscreen
+          TAHOMA_PEG_TOUCH_UI: ${{ matrix.touch_layout }}
         run: /tmp/pegbar-input-smoke
