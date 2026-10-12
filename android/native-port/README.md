@@ -25,9 +25,9 @@ Android including QtScript. It produces a diagnostic artifact even when
 CMake fails. The Native-APK artifact is only produced on full success.
 
 To run it: open GitHub Actions, choose Tahoma2D Android ARM64 -
-Native C++ Port, select master and click Run workflow. Choose the
-Peg Bar feature branch as the source_ref. Never run the old Gradle
-project under android/pegbar-preview for a Tahoma2D APK.
+Native C++ Port, select master and click Run workflow. The workflow
+always checks out the Peg Bar feature branch as the real native source.
+Never run the old Gradle project under android/pegbar-preview for a Tahoma2D APK.
 
 Only one manually dispatched workflow exists; no push, PR or schedule
 triggers. A constant concurrency group cancels older manual jobs if
