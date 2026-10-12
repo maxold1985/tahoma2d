@@ -354,6 +354,7 @@ SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
         parent->property("registrationFollowLayer").toBool());
     connect(followLayer, &QAction::toggled, parent, [parent](bool on) {
       parent->setProperty("registrationFollowLayer", on);
+      if (on) parent->onObjectSwitched();
     });
     QAction *moveLayer = pegBarMenu->addAction(
         tr("Drag Peg Bar to Move Selected Layer"));
