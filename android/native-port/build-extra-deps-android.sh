@@ -51,9 +51,23 @@ test -f "$SOURCE/thirdparty/lzo/2.03/configure"
 cp -a "$SOURCE/thirdparty/lzo/2.03" "$BUILD/lzo-source"
 (
     cd "$BUILD/lzo-source"
-    # Git checkout may not preserve the executable bit on the bundled 2.03 configure.
-    # Run the Autoconf-generated POSIX shell script explicitly.
-    sh ./configure --host=aarch64-linux-android --prefix="$PREFIX" \
+    # Bundled LZO 2.03 ships an obsolete config.sub that rejects aarch64.
+    # The runner installs automake; reuse its up-to-date platform scripts
+    # only in this build copy, keeping the repository's vendor sources intact.
+    AUTOMAKE_DATA_DIR="$(automake --print-libdir)"
+    for helper in config.sub config.guess; do
+        if [ ! -f "$AUTOMAKE_DATA_DIR/$helper" ]; then
+            echo "ERROR: missing Automake platform helper: $AUTOMAKE_DATA_DIR/$helper" >&2
+            exit 2
+        fi
+        install -m 755 "$AUTOMAKE_DATA_DIR/$helper" "autoconf/$helper"
+    done
+    canonical_host="$(sh autoconf/config.sub aarch64-linux-android)"
+    build_triplet="$(sh autoconf/config.guess)"
+    echo "LZO build: $build_triplet; host: $canonical_host"
+    # Execute the bundled configure with sh because its executable bit
+    # may not be set in the Git checkout.
+    sh ./configure --build="$build_triplet" --host="$canonical_host" --prefix="$PREFIX" \
         --libdir="$PREFIX/lib" --disable-shared --enable-static
     make --jobs=2
     make install
