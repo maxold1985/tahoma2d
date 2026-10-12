@@ -18,6 +18,16 @@ typedef uint32_t TUINT32;
 typedef int64_t TINT64;
 typedef uint64_t TUINT64;
 
+#elif defined(__ANDROID__) || defined(ANDROID) || defined(TARGET_OS_ANDROID)
+
+// Android ARM64 uses Clang, which does not provide MSVC's __int32/__int64.
+// Use the fixed-width C99 integer types, as on Linux and macOS.
+#include <stdint.h>
+typedef int32_t TINT32;
+typedef uint32_t TUINT32;
+typedef int64_t TINT64;
+typedef uint64_t TUINT64;
+
 #elif defined(__LP64__) && !(defined(LINUX) || defined(FREEBSD) || defined(HAIKU))
 
 #define TINT32                                                                 \
