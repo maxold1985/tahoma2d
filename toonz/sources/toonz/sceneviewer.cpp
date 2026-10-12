@@ -6,6 +6,7 @@
 // Toonz includes
 #include "tapp.h"
 #include "viewerpane.h"
+#include "japanesepegbaroverlay.h"
 #include "onionskinmaskgui.h"
 #include "viewerdraw.h"
 #include "menubarcommandids.h"
@@ -3255,7 +3256,40 @@ void SceneViewer::onXsheetChanged() {
 
 //-----------------------------------------------------------------------------
 
+
+namespace {
+void syncRegistrationPegBarToSelectedObject(SceneViewer *viewer) {
+  if (!viewer->property("registrationFollowLayer").toBool()) return;
+  TApp *app = TApp::instance();
+  if (app->getCurrentFrame()->isEditingLevel()) return;
+  TXsheet *xsheet = app->getCurrentXsheet()->getXsheet();
+  if (!xsheet) return;
+
+  const TStageObjectId id = app->getCurrentObject()->getObjectId();
+  if (!id.isPegbar() && !id.isColumn()) return;
+  TStageObject *object = xsheet->getStageObject(id);
+  if (!object) return;
+
+  using PegBar = JapaneseRegistrationPegBar;
+  const int currentFrame = app->getCurrentFrame()->getFrame();
+  for (int relativeFrame = -1; relativeFrame <= 1; ++relativeFrame) {
+    const int frame = currentFrame + relativeFrame;
+    if (frame < 0) continue;
+    const PegBar::Frame target =
+        relativeFrame < 0 ? PegBar::Previous
+        : relativeFrame > 0 ? PegBar::Next : PegBar::Current;
+    const TPointD world = object->getPlacement(frame) * TPointD();
+    const TPointD window = viewer->worldToPos(world);
+    PegBar *bar = registrationPegBar(viewer, target);
+    // worldToPos uses bottom-left origin; QWidget uses top-left.
+    bar->move(qRound(window.x - bar->width() / 2.0),
+              qRound(viewer->height() - window.y - bar->height() / 2.0));
+  }
+}
+}  // namespace
+
 void SceneViewer::onObjectSwitched() {
+  syncRegistrationPegBarToSelectedObject(this);
   TTool *tool = TApp::instance()->getCurrentTool()->getTool();
   if (tool && tool->isEnabled()) tool->updateMatrix();
   onLevelChanged();
@@ -3265,6 +3299,7 @@ void SceneViewer::onObjectSwitched() {
 //-----------------------------------------------------------------------------
 
 void SceneViewer::onSceneChanged() {
+  syncRegistrationPegBarToSelectedObject(this);
   onLevelChanged();
   GLInvalidateAll();
 }
@@ -3272,6 +3307,7 @@ void SceneViewer::onSceneChanged() {
 //-----------------------------------------------------------------------------
 
 void SceneViewer::onFrameSwitched() {
+  syncRegistrationPegBarToSelectedObject(this);
   invalidateToolStatus();
 
   TTool *tool = TApp::instance()->getCurrentTool()->getTool();
