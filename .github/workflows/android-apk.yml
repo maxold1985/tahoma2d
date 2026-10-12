@@ -34,11 +34,11 @@ jobs:
           path: ci-src
           persist-credentials: false
 
-      - name: Java 11 for Qt 5.15 Android tools
+      - name: Java 17 for current Android SDK command-line tools
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "11"
+          java-version: "17"
 
       - name: Install Android SDK command-line tools
         uses: android-actions/setup-android@v4
