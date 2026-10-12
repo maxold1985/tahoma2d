@@ -887,10 +887,16 @@ SceneViewer::SceneViewer(ImageUtils::FullScreenWidget *parent)
 
   setAttribute(Qt::WA_AcceptTouchEvents);
 
+  // On Android there is no guaranteed right-click; provide a touch button.
+  // Termux:X11/Linux users can opt into the same layout via
+  // TAHOMA_PEG_TOUCH_UI=1 without altering native desktop behavior.
 #if defined(Q_OS_ANDROID)
-  // Touchscreen users have no right mouse button to reach the registration
-  // menu. Keep the existing Viewer menu and expose it from a touch target.
-  auto *pegBarMenuButton = new QToolButton(this);
+  const bool pegBarTouchMenu = true;
+#else
+  const bool pegBarTouchMenu = qgetenv("TAHOMA_PEG_TOUCH_UI") == "1";
+#endif
+  if (pegBarTouchMenu) {
+    auto *pegBarMenuButton = new QToolButton(this);
   pegBarMenuButton->setObjectName(QStringLiteral("PegBarAndroidMenuButton"));
   pegBarMenuButton->setText(tr("Peg Bar"));
   pegBarMenuButton->setToolTip(tr("Open Viewer and Registration Peg Bar menu"));
@@ -902,8 +908,8 @@ SceneViewer::SceneViewer(ImageUtils::FullScreenWidget *parent)
                           pegBarMenuButton->mapToGlobal(
                               pegBarMenuButton->rect().bottomLeft()));
           });
-  pegBarMenuButton->show();
-#endif
+    pegBarMenuButton->show();
+  }
 
   grabGesture(Qt::SwipeGesture);
   grabGesture(Qt::PanGesture);
@@ -1377,13 +1383,11 @@ void SceneViewer::initializeGL() {
 //-----------------------------------------------------------------------------
 
 void SceneViewer::resizeGL(int w, int h) {
-#if defined(Q_OS_ANDROID)
   if (auto *button = findChild<QToolButton *>(
           QStringLiteral("PegBarAndroidMenuButton"))) {
     button->move(qMax(8, w - button->width() - 12), 12);
     button->raise();
   }
-#endif
   w *= getDevPixRatio();
   h *= getDevPixRatio();
   glViewport(0, 0, w, h);
