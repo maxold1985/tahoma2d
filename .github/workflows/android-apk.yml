@@ -50,7 +50,8 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config unzip
+          sudo apt-get install -y ninja-build pkg-config unzip \
+            autoconf automake libtool gettext intltool libglib2.0-dev
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-30" "build-tools;30.0.3" \
                      "ndk;21.4.7075529" "platform-tools"
@@ -147,7 +148,20 @@ jobs:
           cmake --install "$RUNNER_TEMP/libjpeg-turbo-build"
           test -s "$JPEG_ANDROID_PREFIX/lib/libjpeg.a"
           test -f "$JPEG_ANDROID_PREFIX/include/jpeglib.h"
+          test -s "$JPEG_ANDROID_PREFIX/lib/libturbojpeg.a"
+          test -f "$JPEG_ANDROID_PREFIX/include/turbojpeg.h"
           echo "JPEG_ANDROID_PREFIX=$JPEG_ANDROID_PREFIX" >> "$GITHUB_ENV"
+
+      - name: Cross-compile LZ4 LZO FreeType json-c and libmypaint for ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXTRA_ANDROID_PREFIX="$RUNNER_TEMP/tahoma-deps-arm64"
+          bash "$GITHUB_WORKSPACE/ci-src/android/native-port/build-extra-deps-android.sh" \
+            "$GITHUB_WORKSPACE/tahoma2d-src" \
+            "$RUNNER_TEMP/tahoma-extra-deps-build" \
+            "$EXTRA_ANDROID_PREFIX"
+          echo "EXTRA_ANDROID_PREFIX=$EXTRA_ANDROID_PREFIX" >> "$GITHUB_ENV"
 
       - name: CMake configure, compile and deploy actual editor
         shell: bash
