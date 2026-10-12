@@ -105,6 +105,17 @@ jobs:
             "$TIFF_ANDROID_PREFIX"
           echo "TIFF_ANDROID_PREFIX=$TIFF_ANDROID_PREFIX" >> "$GITHUB_ENV"
 
+      - name: Cross-compile bundled libPNG 1.6.21 for ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          PNG_ANDROID_PREFIX="$RUNNER_TEMP/png-android-prefix"
+          bash "$GITHUB_WORKSPACE/ci-src/android/native-port/build-png-android.sh" \
+            "$GITHUB_WORKSPACE/tahoma2d-src" \
+            "$RUNNER_TEMP/png-android-build" \
+            "$PNG_ANDROID_PREFIX"
+          echo "PNG_ANDROID_PREFIX=$PNG_ANDROID_PREFIX" >> "$GITHUB_ENV"
+
       - name: CMake configure, compile and deploy actual editor
         shell: bash
         run: |
