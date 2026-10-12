@@ -34,6 +34,15 @@ jobs:
           path: ci-src
           persist-credentials: false
 
+      - name: Validate native ARM64 build scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for script in "$GITHUB_WORKSPACE"/ci-src/android/native-port/build-*-android.sh; do
+            echo "Checking $script"
+            bash -n "$script"
+          done
+
       - name: Java 17 for current Android SDK command-line tools
         uses: actions/setup-java@v4
         with:
