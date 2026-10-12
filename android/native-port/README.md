@@ -16,11 +16,13 @@ No APK artifact is published unless a real ELF AArch64 libTahoma2D is
 linked and the generated APK contains that library.
 
 Existing native build blockers include desktop-only dependencies such as
-OpenCV, SuperLU, GLEW, libmypaint and GLU/GLUT, plus old fixed-function
+SuperLU, GLEW, libmypaint and GLU/GLUT, plus old fixed-function
 OpenGL calls (glMatrixMode, glBegin, glOrtho) not available in GLES3.
 Those require further code porting and arm64 third-party builds.
 
-The manual workflow installs JDK 11, SDK 30, NDK r21e and Qt 5.15.2
+The manual workflow installs JDK 17, SDK 30, NDK r21e, the official
+OpenCV 4.10.0 Android ARM64 SDK (verified against the release SHA-1),
+and Qt 5.15.2
 Android including QtScript. It produces a diagnostic artifact even when
 CMake fails. The Native-APK artifact is only produced on full success.
 
@@ -39,6 +41,7 @@ Local invocation (after installing required tools and dependencies):
     export QT_ANDROID_PREFIX="/path/to/Qt/5.15.2/android"
     export ANDROID_SDK_ROOT="/path/to/Android/sdk"
     export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/21.4.7075529"
+    export OpenCV_DIR="/path/to/OpenCV-android-sdk/sdk/native/jni"
     bash android/native-port/build-tahoma-android.sh . build/android-arm64
 
 The script must be executed on Linux with CMake 3.30, Ninja,
