@@ -481,6 +481,11 @@ elseif(BUILD_ENV_APPLE)
 
     find_package(LZO REQUIRED)
     message("LZO:" ${LZO_INCLUDE_DIR})
+    if(BUILD_TARGET_ANDROID)
+        # FindLZO returns include/lzo, but source files use <lzo/lzo1x.h>.
+        get_filename_component(LZO_PARENT_INCLUDE "${LZO_INCLUDE_DIR}" DIRECTORY)
+        include_directories("${LZO_PARENT_INCLUDE}")
+    endif()
 
     pkg_check_modules(MYPAINT_LIB REQUIRED libmypaint)
 
@@ -527,7 +532,10 @@ elseif(BUILD_ENV_UNIXLIKE)
     find_package(PNG REQUIRED)
     set(PNG_LIB ${PNG_LIBRARY})
     message("******* libpng:" ${PNG_LIB})
-    find_package(GLEW)
+    # Android uses the GLESv3 loader; desktop GLEW cannot be linked here.
+    if(NOT BUILD_TARGET_ANDROID)
+        find_package(GLEW)
+    endif()
 
     find_package(SuperLU REQUIRED)
     set(SUPERLU_LIB ${SUPERLU_LIBRARY})
@@ -584,6 +592,10 @@ elseif(BUILD_ENV_UNIXLIKE)
     endif()
     # Can be 'libmypaint' or 'libmypaint-1.x'
     pkg_search_module(MYPAINT_LIB REQUIRED libmypaint)
+    if(BUILD_TARGET_ANDROID)
+        # ARM64 libmypaint is static and uses math functions.
+        list(APPEND MYPAINT_LIB_LDFLAGS -lm)
+    endif()
 
     find_library(TURBOJPEG_LIB turbojpeg)
     message("**************** turbojpeg lib:" ${TURBOJPEG_LIB})
