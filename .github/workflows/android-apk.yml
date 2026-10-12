@@ -94,6 +94,17 @@ jobs:
           echo "OpenCV_DIR=$(dirname "$OPENCV_CONFIG")" >> "$GITHUB_ENV"
           echo "OpenCV Android CMake config: $OPENCV_CONFIG"
 
+      - name: Cross-compile bundled modified libTIFF 4.2.0 for ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          TIFF_ANDROID_PREFIX="$RUNNER_TEMP/tiff-android-prefix"
+          bash "$GITHUB_WORKSPACE/ci-src/android/native-port/build-tiff-android.sh" \
+            "$GITHUB_WORKSPACE/tahoma2d-src" \
+            "$RUNNER_TEMP/tiff-android-build" \
+            "$TIFF_ANDROID_PREFIX"
+          echo "TIFF_ANDROID_PREFIX=$TIFF_ANDROID_PREFIX" >> "$GITHUB_ENV"
+
       - name: CMake configure, compile and deploy actual editor
         shell: bash
         run: |
