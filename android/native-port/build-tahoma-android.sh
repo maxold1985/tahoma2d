@@ -143,9 +143,42 @@ if [ -z "${JPEG_ANDROID_PREFIX:-}" ] || \
 fi
 echo "Android JPEG: $JPEG_ANDROID_PREFIX/lib/libjpeg.a"
 
+# Required ARM64 libraries are installed into a private prefix by the CI.
+# Do not permit pkg-config to resolve the Ubuntu host's x86_64 libraries.
+if [ -z "${EXTRA_ANDROID_PREFIX:-}" ] || [ ! -d "$EXTRA_ANDROID_PREFIX/lib/pkgconfig" ]; then
+    echo "ERROR: missing Android ARM64 LZ4, LZO, FreeType, json-c and libmypaint prefix."
+    exit 2
+fi
+export PKG_CONFIG_PATH=
+export PKG_CONFIG_LIBDIR="$EXTRA_ANDROID_PREFIX/lib/pkgconfig:$EXTRA_ANDROID_PREFIX/share/pkgconfig"
+export PKG_CONFIG_SYSROOT_DIR=
+for package in liblz4 freetype2 json-c libmypaint; do
+    if ! pkg-config --exists "$package"; then
+        echo "ERROR: missing ARM64 pkg-config module: $package"
+        exit 2
+    fi
+    echo "Target $package: $(pkg-config --modversion "$package")"
+done
+for name in lz4 lzo2 freetype json-c mypaint; do
+    if [ ! -s "$EXTRA_ANDROID_PREFIX/lib/lib$name.a" ]; then
+        echo "ERROR: missing ARM64 archive: lib$name.a"
+        exit 2
+    fi
+done
+if [ ! -f "$EXTRA_ANDROID_PREFIX/include/lzo/lzoconf.h" ]; then
+    echo "ERROR: missing Android LZO headers"
+    exit 2
+fi
+if [ ! -s "$JPEG_ANDROID_PREFIX/lib/libturbojpeg.a" ] || \
+   [ ! -f "$JPEG_ANDROID_PREFIX/include/turbojpeg.h" ]; then
+    echo "ERROR: missing TurboJPEG ARM64 archive/headers"
+    exit 2
+fi
+echo "ARM64 pkg-config root: $PKG_CONFIG_LIBDIR"
+
 echo "=== Known unfinished native-port dependencies ==="
-echo "The desktop editor still needs Android ARM64 builds of GLEW,"
-echo "GLU/GLUT replacements, libmypaint and"
+echo "The desktop editor still requires a GLES replacement for GLEW,"
+echo "GLU/GLUT replacements and"
 echo "other external libraries. Legacy glMatrixMode/glBegin calls still"
 echo "need a GLES3 implementation. The CMake errors show actual blockers."
 echo "No preview APK will be substituted if configure/compile fails."
@@ -161,13 +194,18 @@ cmake --fresh -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DANDROID_SDK_PLATFORM=android-30 \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_STANDARD=17 \
-    -DCMAKE_PREFIX_PATH="$QT_ANDROID_PREFIX" \
+    -DCMAKE_PREFIX_PATH="$QT_ANDROID_PREFIX;$EXTRA_ANDROID_PREFIX" \
     -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH \
     -DOpenCV_DIR="$OpenCV_DIR" \
     -DTIFF_LIBRARY="$TIFF_ANDROID_PREFIX/lib/libtiff.a" \
     -DTIFF_INCLUDE_DIR="$TIFF_ANDROID_PREFIX/include" \
     -DJPEG_LIBRARY:FILEPATH="$JPEG_ANDROID_PREFIX/lib/libjpeg.a" \
     -DJPEG_INCLUDE_DIR:PATH="$JPEG_ANDROID_PREFIX/include" \
+    -DTURBOJPEG_LIB:FILEPATH="$JPEG_ANDROID_PREFIX/lib/libturbojpeg.a" \
+    -DLZO_LIBRARY:FILEPATH="$EXTRA_ANDROID_PREFIX/lib/liblzo2.a" \
+    -DLZO_INCLUDE_DIR:PATH="$EXTRA_ANDROID_PREFIX/include/lzo" \
+    -DCMAKE_C_FLAGS="-I$EXTRA_ANDROID_PREFIX/include" \
+    -DCMAKE_CXX_FLAGS="-I$EXTRA_ANDROID_PREFIX/include" \
     -DPNG_LIBRARY="$PNG_ANDROID_PREFIX/lib/libpng16.a" \
     -DPNG_PNG_INCLUDE_DIR="$PNG_ANDROID_PREFIX/include" \
     -DSUPERLU_ROOT="$SUPERLU_ANDROID_PREFIX" \
