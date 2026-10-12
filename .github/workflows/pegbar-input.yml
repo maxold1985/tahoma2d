@@ -1,0 +1,32 @@
+name: Peg Bar touch input smoke
+
+on:
+  push:
+    branches:
+      - feature/japanese-registration-pegbar-viewer
+  pull_request:
+    paths:
+      - ".github/workflows/pegbar-input.yml"
+      - "toonz/tests/pegbar_android_input_smoke.cpp"
+      - "toonz/sources/toonz/japanesepegbaroverlay.h"
+
+jobs:
+  qt5-touch-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Install Qt5 Widgets development headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ pkg-config qtbase5-dev
+      - name: Build standalone Peg Bar mouse and touch tests
+        run: |
+          g++ -std=c++17 -fPIC -Wall -Wextra -Werror=return-type \
+            toonz/tests/pegbar_android_input_smoke.cpp \
+            -o /tmp/pegbar-input-smoke \
+            $(pkg-config --cflags --libs Qt5Widgets)
+      - name: Test mouse drag, multi-touch rotation and cancellation
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: /tmp/pegbar-input-smoke
