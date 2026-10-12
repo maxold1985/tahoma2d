@@ -84,8 +84,17 @@ if [ "$missing" -ne 0 ]; then
 fi
 QT_CMAKE_ARGS+=("-DQt5_DIR=$QT_CMAKE_ROOT/Qt5")
 
+# The OpenCV Android SDK is a target-specific prebuilt distribution.
+# Do not accidentally pick up Ubuntu's x86_64 OpenCV during cross-compile.
+if [ -z "${OpenCV_DIR:-}" ] || [ ! -f "$OpenCV_DIR/OpenCVConfig.cmake" ]; then
+    echo "ERROR: OpenCV_DIR must point to the Android OpenCVConfig.cmake directory."
+    echo "Install the official OpenCV Android SDK for arm64-v8a first."
+    exit 2
+fi
+echo "OpenCV Android package: $OpenCV_DIR"
+
 echo "=== Known unfinished native-port dependencies ==="
-echo "The desktop editor needs Android ARM64 builds of OpenCV, GLEW,"
+echo "The desktop editor still needs Android ARM64 builds of GLEW,"
 echo "GLU/GLUT replacements, TIFF, PNG, JPEG, SuperLU, libmypaint and"
 echo "other external libraries. Legacy glMatrixMode/glBegin calls still"
 echo "need a GLES3 implementation. The CMake errors show actual blockers."
@@ -104,6 +113,7 @@ cmake -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_PREFIX_PATH="$QT_ANDROID_PREFIX" \
     -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH \
+    -DOpenCV_DIR="$OpenCV_DIR" \
     "${QT_CMAKE_ARGS[@]}" \
     -DQT_PATH="$QT_ANDROID_PREFIX" \
     -DWITH_TRANSLATION=OFF \
