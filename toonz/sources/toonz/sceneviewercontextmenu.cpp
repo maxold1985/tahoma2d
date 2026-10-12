@@ -3,6 +3,11 @@
 #include "sceneviewer.h"
 #include "sceneviewercontextmenu.h"
 #include "japanesepegbaroverlay.h"
+#include "tundo.h"
+#include "historytypes.h"
+#include "toonz/stage.h"
+#include "toonz/tstageobject.h"
+#include "toonz/txsheet.h"
 
 // Toonz includes
 #include "tapp.h"
@@ -40,6 +45,61 @@
 #include <QContextMenuEvent>
 #include <QSignalMapper>
 #include <QInputDialog>
+
+
+// Undoable translation/rotation of the currently selected stage object.
+// The guide remains a viewer overlay; only this operation changes the scene.
+namespace {
+class RegistrationPegBarTransformUndo final : public TUndo {
+  TXsheetHandle *m_xsheetHandle;
+  TStageObjectId m_id;
+  int m_frame;
+  bool m_hadKeyframe;
+  double m_oldX, m_oldY, m_oldAngle;
+  double m_newX, m_newY, m_newAngle;
+
+  void apply(bool redoOperation) const {
+    TXsheet *xsheet = m_xsheetHandle->getXsheet();
+    TStageObject *object = xsheet ? xsheet->getStageObject(m_id) : nullptr;
+    if (!object) return;
+    if (!redoOperation && !m_hadKeyframe) {
+      object->removeKeyframeWithoutUndo(m_frame);
+    } else {
+      object->setParam(TStageObject::T_X, m_frame,
+                       redoOperation ? m_newX : m_oldX);
+      object->setParam(TStageObject::T_Y, m_frame,
+                       redoOperation ? m_newY : m_oldY);
+      object->setParam(TStageObject::T_Angle, m_frame,
+                       redoOperation ? m_newAngle : m_oldAngle);
+    }
+    m_xsheetHandle->notifyXsheetChanged();
+  }
+
+public:
+  RegistrationPegBarTransformUndo(TXsheetHandle *handle, TStageObjectId id,
+                                 int frame, bool hadKeyframe,
+                                 double oldX, double oldY, double oldAngle,
+                                 double newX, double newY, double newAngle)
+      : m_xsheetHandle(handle)
+      , m_id(id)
+      , m_frame(frame)
+      , m_hadKeyframe(hadKeyframe)
+      , m_oldX(oldX)
+      , m_oldY(oldY)
+      , m_oldAngle(oldAngle)
+      , m_newX(newX)
+      , m_newY(newY)
+      , m_newAngle(newAngle) {}
+
+  void undo() const override { apply(false); }
+  void redo() const override { apply(true); }
+  int getSize() const override { return sizeof(*this); }
+  int getHistoryType() override { return HistoryType::Schematic; }
+  QString getHistoryString() override {
+    return QObject::tr("Move drawing with Registration Peg Bar");
+  }
+};
+}  // namespace
 
 SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
     : QMenu(parent), m_viewer(parent), m_groupIndexToBeEntered(-1) {
@@ -289,13 +349,60 @@ SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
     // do not advertise it until its own undoable implementation is present.
     QAction *followLayer = pegBarMenu->addAction(
         tr("Follow Selected Layer / Pegbar"));
-    followLayer->setEnabled(false);
-    followLayer->setToolTip(
-        tr("Requires stage-object transform integration."));
+    followLayer->setCheckable(true);
+    followLayer->setChecked(
+        parent->property("registrationFollowLayer").toBool());
+    connect(followLayer, &QAction::toggled, parent, [parent](bool on) {
+      parent->setProperty("registrationFollowLayer", on);
+    });
     QAction *moveLayer = pegBarMenu->addAction(
         tr("Drag Peg Bar to Move Selected Layer"));
-    moveLayer->setEnabled(false);
-    moveLayer->setToolTip(tr("Requires undoable layer transforms."));
+    moveLayer->setCheckable(true);
+    moveLayer->setChecked(
+        parent->property("registrationMoveLayer").toBool());
+    connect(moveLayer, &QAction::toggled, parent, [parent](bool on) {
+      parent->setProperty("registrationMoveLayer", on);
+    });
+
+    auto bindTransform = [parent](PegBar *bar, int relativeFrame) {
+      bar->setTransformCommitted([parent, relativeFrame](
+                                      const QPoint &delta, double angle) {
+        if (!parent->property("registrationMoveLayer").toBool()) return;
+        TApp *app = TApp::instance();
+        if (app->getCurrentFrame()->isEditingLevel()) return;
+        TXsheetHandle *handle = app->getCurrentXsheet();
+        TXsheet *xsheet = handle->getXsheet();
+        if (!xsheet) return;
+        TStageObjectId id = app->getCurrentObject()->getObjectId();
+        if (!id.isPegbar() && !id.isColumn()) return;
+        TStageObject *object = xsheet->getStageObject(id);
+        if (!object || object->isLocked()) return;
+        const int frame = app->getCurrentFrame()->getFrame() + relativeFrame;
+        if (frame < 0) return;
+        if (delta.isNull() && qAbs(angle) < 0.001) return;
+
+        // Convert viewer pixels into stage inches. The viewer controls
+        // zoom, pan and rotation, so fixed pixel scaling is incorrect.
+        const QPointF p0(parent->width() / 2.0, parent->height() / 2.0);
+        const TPointD a = parent->winToWorld(p0);
+        const TPointD b = parent->winToWorld(p0 + QPointF(delta));
+        const double dx = (b.x - a.x) / Stage::inch;
+        const double dy = (b.y - a.y) / Stage::inch;
+
+        const double oldX = object->getParam(TStageObject::T_X, frame);
+        const double oldY = object->getParam(TStageObject::T_Y, frame);
+        const double oldAngle = object->getParam(TStageObject::T_Angle, frame);
+        const bool hadKeyframe = object->isKeyframe(frame);
+        auto *undo = new RegistrationPegBarTransformUndo(
+            handle, id, frame, hadKeyframe, oldX, oldY, oldAngle,
+            oldX + dx, oldY + dy, oldAngle + angle);
+        undo->redo();
+        TUndoManager::manager()->add(undo);
+      });
+    };
+    bindTransform(previousBar, -1);
+    bindTransform(currentBar, 0);
+    bindTransform(nextBar, 1);
 
     QMenu *targetMenu = pegBarMenu->addMenu(tr("Drag Target"));
     QActionGroup *targetGroup = new QActionGroup(targetMenu);
