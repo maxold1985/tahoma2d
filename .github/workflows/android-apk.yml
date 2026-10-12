@@ -3,15 +3,6 @@ name: Tahoma2D Android ARM64 - Native C++ Port
 # Exactly one manual workflow. No push, pull_request, or schedule triggers.
 on:
   workflow_dispatch:
-    inputs:
-      source_ref:
-        description: "Real Tahoma2D C++ source to cross-compile"
-        type: choice
-        required: true
-        default: feature/japanese-registration-pegbar-viewer
-        options:
-          - feature/japanese-registration-pegbar-viewer
-          - master
 
 permissions:
   contents: read
@@ -32,7 +23,7 @@ jobs:
       - name: Checkout original Tahoma2D C++ source
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.source_ref }}
+          ref: feature/japanese-registration-pegbar-viewer
           path: tahoma2d-src
           persist-credentials: false
 
