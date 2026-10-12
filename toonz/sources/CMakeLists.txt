@@ -585,7 +585,14 @@ elseif(BUILD_ENV_UNIXLIKE)
     if(BUILD_TARGET_BSD OR HAIKU)
         find_library(EXECINFO_LIBRARY execinfo)
     endif()
-    find_library(PTHREAD_LIBRARY pthread)
+    if(BUILD_TARGET_ANDROID)
+        # Android Bionic provides pthread APIs in libc; there is no
+        # standalone libpthread.so in the NDK sysroot.
+        find_package(Threads REQUIRED)
+        set(PTHREAD_LIBRARY Threads::Threads)
+    else()
+        find_library(PTHREAD_LIBRARY pthread)
+    endif()
 
     if(NOT BUILD_TARGET_WIN)
         pkg_check_modules(FREETYPE REQUIRED freetype2)
