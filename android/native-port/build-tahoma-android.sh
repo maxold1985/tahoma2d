@@ -129,6 +129,11 @@ if [ -z "${SUPERLU_ANDROID_PREFIX:-}" ] || \
     exit 2
 fi
 echo "Android SuperLU: $SUPERLU_ANDROID_PREFIX/lib/libsuperlu_4.1.a"
+# Check the exact Android archives and headers before CMake package discovery.
+ls -l "$SUPERLU_ANDROID_PREFIX/lib/libsuperlu_4.1.a" \
+      "$SUPERLU_ANDROID_PREFIX/lib/libblas.a" \
+      "$SUPERLU_ANDROID_PREFIX/include/slu_Cnames.h"
+export SUPERLU_ROOT="$SUPERLU_ANDROID_PREFIX"
 
 echo "=== Known unfinished native-port dependencies ==="
 echo "The desktop editor still needs Android ARM64 builds of GLEW,"
@@ -138,7 +143,7 @@ echo "need a GLES3 implementation. The CMake errors show actual blockers."
 echo "No preview APK will be substituted if configure/compile fails."
 
 set -x
-cmake -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
+cmake --fresh -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
     -DANDROID_ABI=arm64-v8a \
     -DANDROID_PLATFORM=android-24 \
@@ -155,8 +160,10 @@ cmake -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DTIFF_INCLUDE_DIR="$TIFF_ANDROID_PREFIX/include" \
     -DPNG_LIBRARY="$PNG_ANDROID_PREFIX/lib/libpng16.a" \
     -DPNG_PNG_INCLUDE_DIR="$PNG_ANDROID_PREFIX/include" \
-    -DSUPERLU_LIBRARY="$SUPERLU_ANDROID_PREFIX/lib/libsuperlu_4.1.a" \
-    -DSUPERLU_INCLUDE_DIR="$SUPERLU_ANDROID_PREFIX/include" \
+    -DSUPERLU_ROOT="$SUPERLU_ANDROID_PREFIX" \
+    -DSuperLU_ROOT="$SUPERLU_ANDROID_PREFIX" \
+    -DSUPERLU_LIBRARY:FILEPATH="$SUPERLU_ANDROID_PREFIX/lib/libsuperlu_4.1.a" \
+    -DSUPERLU_INCLUDE_DIR:PATH="$SUPERLU_ANDROID_PREFIX/include" \
     -DOPENBLAS_LIB="$SUPERLU_ANDROID_PREFIX/lib/libblas.a" \
     "${QT_CMAKE_ARGS[@]}" \
     -DQT_PATH="$QT_ANDROID_PREFIX" \
