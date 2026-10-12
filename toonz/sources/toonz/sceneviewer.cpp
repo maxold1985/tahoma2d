@@ -88,6 +88,7 @@
 #include <QOpenGLContext>
 #include <QOpenGLFramebufferObject>
 #include <QMainWindow>
+#include <QToolButton>
 
 #include "sceneviewer.h"
 
@@ -885,6 +886,25 @@ SceneViewer::SceneViewer(ImageUtils::FullScreenWidget *parent)
   m_3DTop   = rasterFromQPixmap(svgToPixmap(":Resources/3Dtop.svg"));
 
   setAttribute(Qt::WA_AcceptTouchEvents);
+
+#if defined(Q_OS_ANDROID)
+  // Touchscreen users have no right mouse button to reach the registration
+  // menu. Keep the existing Viewer menu and expose it from a touch target.
+  auto *pegBarMenuButton = new QToolButton(this);
+  pegBarMenuButton->setObjectName(QStringLiteral("PegBarAndroidMenuButton"));
+  pegBarMenuButton->setText(tr("Peg Bar"));
+  pegBarMenuButton->setToolTip(tr("Open Viewer and Registration Peg Bar menu"));
+  pegBarMenuButton->setMinimumSize(88, 56);
+  pegBarMenuButton->setFocusPolicy(Qt::NoFocus);
+  connect(pegBarMenuButton, &QToolButton::clicked, this,
+          [this, pegBarMenuButton]() {
+            onContextMenu(pegBarMenuButton->geometry().center(),
+                          pegBarMenuButton->mapToGlobal(
+                              pegBarMenuButton->rect().bottomLeft()));
+          });
+  pegBarMenuButton->show();
+#endif
+
   grabGesture(Qt::SwipeGesture);
   grabGesture(Qt::PanGesture);
   grabGesture(Qt::PinchGesture);
@@ -1357,6 +1377,13 @@ void SceneViewer::initializeGL() {
 //-----------------------------------------------------------------------------
 
 void SceneViewer::resizeGL(int w, int h) {
+#if defined(Q_OS_ANDROID)
+  if (auto *button = findChild<QToolButton *>(
+          QStringLiteral("PegBarAndroidMenuButton"))) {
+    button->move(qMax(8, w - button->width() - 12), 12);
+    button->raise();
+  }
+#endif
   w *= getDevPixRatio();
   h *= getDevPixRatio();
   glViewport(0, 0, w, h);
