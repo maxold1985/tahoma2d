@@ -118,9 +118,21 @@ if [ -z "${PNG_ANDROID_PREFIX:-}" ] || \
 fi
 echo "Android libPNG: $PNG_ANDROID_PREFIX/lib/libpng16.a"
 
+# SuperLU's Windows .lib files cannot be linked into Android ARM64.
+# Require the NDK-built SuperLU archive and its reference CBLAS.
+if [ -z "${SUPERLU_ANDROID_PREFIX:-}" ] || \
+   [ ! -s "$SUPERLU_ANDROID_PREFIX/lib/libsuperlu_4.1.a" ] || \
+   [ ! -s "$SUPERLU_ANDROID_PREFIX/lib/libblas.a" ] || \
+   [ ! -f "$SUPERLU_ANDROID_PREFIX/include/slu_Cnames.h" ]; then
+    echo "ERROR: missing Android ARM64 SuperLU or reference CBLAS."
+    echo "Run build-superlu-android.sh before configuring Tahoma2D."
+    exit 2
+fi
+echo "Android SuperLU: $SUPERLU_ANDROID_PREFIX/lib/libsuperlu_4.1.a"
+
 echo "=== Known unfinished native-port dependencies ==="
 echo "The desktop editor still needs Android ARM64 builds of GLEW,"
-echo "GLU/GLUT replacements, JPEG, SuperLU, libmypaint and"
+echo "GLU/GLUT replacements, JPEG, libmypaint and"
 echo "other external libraries. Legacy glMatrixMode/glBegin calls still"
 echo "need a GLES3 implementation. The CMake errors show actual blockers."
 echo "No preview APK will be substituted if configure/compile fails."
@@ -143,6 +155,9 @@ cmake -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DTIFF_INCLUDE_DIR="$TIFF_ANDROID_PREFIX/include" \
     -DPNG_LIBRARY="$PNG_ANDROID_PREFIX/lib/libpng16.a" \
     -DPNG_PNG_INCLUDE_DIR="$PNG_ANDROID_PREFIX/include" \
+    -DSUPERLU_LIBRARY="$SUPERLU_ANDROID_PREFIX/lib/libsuperlu_4.1.a" \
+    -DSUPERLU_INCLUDE_DIR="$SUPERLU_ANDROID_PREFIX/include" \
+    -DOPENBLAS_LIB="$SUPERLU_ANDROID_PREFIX/lib/libblas.a" \
     "${QT_CMAKE_ARGS[@]}" \
     -DQT_PATH="$QT_ANDROID_PREFIX" \
     -DWITH_TRANSLATION=OFF \
