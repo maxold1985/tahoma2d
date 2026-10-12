@@ -70,7 +70,7 @@ install -m 644 \
 
 # Confirm at least one object inside the static archive targets AArch64.
 NDK_READ_ELF="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-if ! "$NDK_READ_ELF" -h "$TIFF_PREFIX/lib/libtiff.a" | grep -q AArch64; then
+if ! "$NDK_READ_ELF" -h "$TIFF_PREFIX/lib/libtiff.a" | grep AArch64 > /dev/null; then
     echo "ERROR: compiled libTIFF archive is not Android AArch64." >&2
     exit 3
 fi
