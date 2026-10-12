@@ -647,7 +647,11 @@ include_directories(
     ${PNG_INCLUDE_DIRS}
 )
 
-if(BUILD_ENV_MSVC OR BUILD_ENV_APPLE)
+if(BUILD_TARGET_ANDROID)
+    # Android uses staged architecture-independent Boost headers.
+    # Fail early instead of passing Boost_INCLUDE_DIR-NOTFOUND into every target.
+    find_package(Boost 1.55 REQUIRED)
+elseif(BUILD_ENV_MSVC OR BUILD_ENV_APPLE)
     find_path(
         BOOST_ROOT
             include/boost
@@ -671,7 +675,7 @@ endif()
 
 include_directories(
     SYSTEM
-    ${Boost_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS}
     ${LZ4_LIB_INCLUDE_DIRS}
     ${USB_LIB_INCLUDE_DIRS}
     ${SUPERLU_INCLUDE_DIR}
