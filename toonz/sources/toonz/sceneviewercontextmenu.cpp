@@ -239,6 +239,10 @@ SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
     auto *currentBar  = registrationPegBar(parent, PegBar::Current);
     auto *nextBar     = registrationPegBar(parent, PegBar::Next);
 
+    auto selectedBar = [parent, previousBar, currentBar, nextBar]() {
+      const int index = parent->property("registrationPegBarTarget").toInt();
+      return index == 1 ? previousBar : index == 2 ? nextBar : currentBar;
+    };
     QMenu *pegBarMenu = addMenu(tr("Japanese Registration Peg Bar"));
     QAction *showBars = pegBarMenu->addAction(tr("Show Transparent Peg Bars"));
     showBars->setCheckable(true);
@@ -300,11 +304,17 @@ SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
       QAction *targetAction = targetMenu->addAction(label);
       targetAction->setCheckable(true);
       targetGroup->addAction(targetAction);
-      targetAction->setChecked(bar == currentBar);
+      targetAction->setChecked(bar == selectedBar());
       connect(targetAction, &QAction::triggered, parent,
-              [bar, parent]() {
+              [bar, parent, previousBar, nextBar, currentBar, refreshBars]() {
+                parent->setProperty("registrationPegBarTarget",
+                                    bar == previousBar ? 1 : bar == nextBar ? 2 : 0);
                 parent->setProperty("registrationPegBarsVisible", true);
-                bar->show();
+                if (bar == previousBar)
+                  parent->setProperty("registrationPegBarPrevious", true);
+                if (bar == nextBar)
+                  parent->setProperty("registrationPegBarNext", true);
+                refreshBars();
                 bar->raise();
               });
     };
@@ -313,20 +323,20 @@ SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
     addTarget(tr("Next Peg Bar (Red)"), nextBar);
 
     QAction *rotateBar = pegBarMenu->addAction(tr("Set Peg Bar Rotation..."));
-    connect(rotateBar, &QAction::triggered, parent, [parent, currentBar]() {
+    connect(rotateBar, &QAction::triggered, parent, [parent, selectedBar]() {
       bool ok = false;
       double angle = QInputDialog::getDouble(
           parent, tr("Peg Bar Rotation"), tr("Angle (degrees):"),
-          currentBar->rotation(), -180.0, 180.0, 1, &ok);
-      if (ok) currentBar->setRotation(angle);
+          selectedBar()->rotation(), -180.0, 180.0, 1, &ok);
+      if (ok) selectedBar()->setRotation(angle);
     });
 
     QAction *resetPosition = pegBarMenu->addAction(tr("Reset Peg Bar Position"));
     connect(resetPosition, &QAction::triggered, parent,
-            [currentBar]() { currentBar->resetPosition(); });
+            [selectedBar]() { selectedBar()->resetPosition(); });
     QAction *resetRotation = pegBarMenu->addAction(tr("Reset Peg Bar Rotation"));
     connect(resetRotation, &QAction::triggered, parent,
-            [currentBar]() { currentBar->resetRotation(); });
+            [selectedBar]() { selectedBar()->resetRotation(); });
 
     QMenu *opacityMenu = pegBarMenu->addMenu(
         tr("Peg Bar Opacity (Previous / Next)"));
