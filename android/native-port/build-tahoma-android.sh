@@ -175,6 +175,16 @@ if [ ! -s "$JPEG_ANDROID_PREFIX/lib/libturbojpeg.a" ] || \
     exit 2
 fi
 echo "ARM64 pkg-config root: $PKG_CONFIG_LIBDIR"
+# Boost headers are architecture-independent; the ARM64 compilation uses
+# them from our isolated dependency prefix, not the runner's /usr/include.
+BOOST_ANDROID_INCLUDE="$EXTRA_ANDROID_PREFIX/include"
+if [ ! -f "$BOOST_ANDROID_INCLUDE/boost/version.hpp" ] || \
+   [ ! -f "$BOOST_ANDROID_INCLUDE/boost/config.hpp" ]; then
+    echo "ERROR: missing staged Boost headers for Android."
+    exit 2
+fi
+echo "Boost headers: $BOOST_ANDROID_INCLUDE/boost"
+
 
 echo "=== Known unfinished native-port dependencies ==="
 echo "The desktop editor still requires a GLES replacement for GLEW,"
@@ -196,6 +206,10 @@ cmake --fresh -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_PREFIX_PATH="$QT_ANDROID_PREFIX;$EXTRA_ANDROID_PREFIX" \
     -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH \
+    -DBoost_NO_BOOST_CMAKE:BOOL=ON \
+    -DBoost_NO_SYSTEM_PATHS:BOOL=ON \
+    -DBoost_INCLUDE_DIR:PATH="$BOOST_ANDROID_INCLUDE" \
+    -DBOOST_ROOT:PATH="$EXTRA_ANDROID_PREFIX" \
     -DOpenCV_DIR="$OpenCV_DIR" \
     -DTIFF_LIBRARY="$TIFF_ANDROID_PREFIX/lib/libtiff.a" \
     -DTIFF_INCLUDE_DIR="$TIFF_ANDROID_PREFIX/include" \
