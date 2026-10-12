@@ -51,7 +51,9 @@ test -f "$SOURCE/thirdparty/lzo/2.03/configure"
 cp -a "$SOURCE/thirdparty/lzo/2.03" "$BUILD/lzo-source"
 (
     cd "$BUILD/lzo-source"
-    ./configure --host=aarch64-linux-android --prefix="$PREFIX" \
+    # Git checkout may not preserve the executable bit on the bundled 2.03 configure.
+    # Run the Autoconf-generated POSIX shell script explicitly.
+    sh ./configure --host=aarch64-linux-android --prefix="$PREFIX" \
         --libdir="$PREFIX/lib" --disable-shared --enable-static
     make --jobs=2
     make install
