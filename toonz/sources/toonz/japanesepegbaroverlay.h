@@ -51,6 +51,13 @@ public:
 
   double rotation() const { return m_rotation; }
 
+  void commitRotation(double degrees) {
+    const double change = degrees - m_rotation;
+    setRotation(degrees);
+    if (m_onTransformCommitted && qAbs(change) > 0.001)
+      m_onTransformCommitted(QPoint(), change);
+  }
+
   void setTransformCommitted(std::function<void(const QPoint &, double)> fn) {
     m_onTransformCommitted = std::move(fn);
   }
