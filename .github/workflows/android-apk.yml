@@ -116,6 +116,17 @@ jobs:
             "$PNG_ANDROID_PREFIX"
           echo "PNG_ANDROID_PREFIX=$PNG_ANDROID_PREFIX" >> "$GITHUB_ENV"
 
+      - name: Cross-compile bundled SuperLU 4.1 and CBLAS for ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          SUPERLU_ANDROID_PREFIX="$RUNNER_TEMP/superlu-android-prefix"
+          bash "$GITHUB_WORKSPACE/ci-src/android/native-port/build-superlu-android.sh" \
+            "$GITHUB_WORKSPACE/tahoma2d-src" \
+            "$RUNNER_TEMP/superlu-android-build" \
+            "$SUPERLU_ANDROID_PREFIX"
+          echo "SUPERLU_ANDROID_PREFIX=$SUPERLU_ANDROID_PREFIX" >> "$GITHUB_ENV"
+
       - name: CMake configure, compile and deploy actual editor
         shell: bash
         run: |
