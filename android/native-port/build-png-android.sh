@@ -30,6 +30,7 @@ cmake -S "$PNG_SOURCE" -B "$PNG_BUILD" -G Ninja \
     -DPNG_SHARED=OFF \
     -DPNG_STATIC=ON \
     -DPNG_TESTS=OFF \
+    -DSKIP_INSTALL_ALL=ON \
     -DPNG_FRAMEWORK=OFF
 
 cmake --build "$PNG_BUILD" --target png16_static --parallel 2
