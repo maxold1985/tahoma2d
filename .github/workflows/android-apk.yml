@@ -1,20 +1,14 @@
 name: Android APK - Peg Bar Preview
 
+# Manual execution only: no push or PR triggers.
 on:
-  push:
-    branches:
-      - master
-      - feature/japanese-registration-pegbar-viewer
-    paths:
-      - '.github/workflows/android-apk.yml'
-      - 'android/pegbar-preview/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: android-pegbar-preview-${{ github.ref }}
+  group: android-pegbar-preview-single-run
   cancel-in-progress: true
 
 jobs:
