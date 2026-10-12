@@ -9,6 +9,8 @@
 #include <QPainter>
 #include <QResizeEvent>
 #include <QWidget>
+#include <functional>
+#include <utility>
 #include <QtMath>
 
 // Viewer-only registration guides.  These do not modify the Xsheet, stage
@@ -48,6 +50,10 @@ public:
   }
 
   double rotation() const { return m_rotation; }
+
+  void setTransformCommitted(std::function<void(const QPoint &, double)> fn) {
+    m_onTransformCommitted = std::move(fn);
+  }
 
   void setBarOpacity(int percent) {
     m_opacity = qBound(0, percent, 100);
@@ -121,6 +127,10 @@ protected:
     if (event->button() == Qt::LeftButton && m_dragging) {
       m_dragging = false;
       setCursor(Qt::OpenHandCursor);
+      if (m_onTransformCommitted) {
+        m_onTransformCommitted(pos() - m_widgetOrigin,
+                               m_rotation - m_startRotation);
+      }
       event->accept();
       return;
     }
@@ -128,6 +138,7 @@ protected:
   }
 
 private:
+  std::function<void(const QPoint &, double)> m_onTransformCommitted;
   Frame m_frame;
   int m_opacity = 100;
   double m_rotation = 0.0;
