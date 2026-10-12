@@ -387,8 +387,11 @@ SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
         const QPointF p0(parent->width() / 2.0, parent->height() / 2.0);
         const TPointD a = parent->winToWorld(p0);
         const TPointD b = parent->winToWorld(p0 + QPointF(delta));
-        const double dx = (b.x - a.x) / Stage::inch;
-        const double dy = (b.y - a.y) / Stage::inch;
+        const TAffine localFromWorld = object->getParentPlacement(frame).inv();
+        const TPointD localA = localFromWorld * a;
+        const TPointD localB = localFromWorld * b;
+        const double dx = (localB.x - localA.x) / Stage::inch;
+        const double dy = (localB.y - localA.y) / Stage::inch;
 
         const double oldX = object->getParam(TStageObject::T_X, frame);
         const double oldY = object->getParam(TStageObject::T_Y, frame);
