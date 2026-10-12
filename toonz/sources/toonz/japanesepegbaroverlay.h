@@ -10,6 +10,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QRegion>
 #include <QResizeEvent>
 #include <QTabletEvent>
 #include <QTouchEvent>
@@ -46,8 +47,8 @@ public:
   void resetPosition() {
     QWidget *viewer = parentWidget();
     if (!viewer) return;
-    const int step = isAndroid() ? 66 : 54;
-    const int centerY = (isAndroid() ? 49 : 34) + int(m_frame) * step;
+    const int step = useTouchLayout() ? 66 : 54;
+    const int centerY = (useTouchLayout() ? 49 : 34) + int(m_frame) * step;
     move((viewer->width() - width()) / 2, centerY - height() / 2);
     update();
   }
@@ -230,11 +231,11 @@ protected:
   }
 
 private:
-  static bool isAndroid() {
+  static bool useTouchLayout() {
 #if defined(Q_OS_ANDROID)
     return true;
 #else
-    return false;
+    return qgetenv("TAHOMA_PEG_TOUCH_UI") == "1";
 #endif
   }
 
@@ -247,8 +248,8 @@ private:
     const double scale = width() / 350.0;
     QPainterPath path;
     // Wider hit band than the drawn ruler for fingers and S Pen.
-    path.addRoundedRect(QRectF(-154, isAndroid() ? -24 : -19,
-                               308, isAndroid() ? 48 : 38), 5, 5);
+    path.addRoundedRect(QRectF(-154, useTouchLayout() ? -24 : -19,
+                               308, useTouchLayout() ? 48 : 38), 5, 5);
     QTransform transform;
     transform.translate(width() * 0.5, height() * 0.5);
     transform.rotate(m_rotation);
