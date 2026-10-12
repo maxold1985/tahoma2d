@@ -106,9 +106,21 @@ if [ -z "${TIFF_ANDROID_PREFIX:-}" ] || \
 fi
 echo "Tahoma2D Android libTIFF: $TIFF_ANDROID_PREFIX/lib/libtiff.a"
 
+# FindPNG.cmake requires PNG_LIBRARY and PNG_PNG_INCLUDE_DIR.
+# Pass the Android archive explicitly, never the Linux runner's host libpng.
+if [ -z "${PNG_ANDROID_PREFIX:-}" ] || \
+   [ ! -s "$PNG_ANDROID_PREFIX/lib/libpng16.a" ] || \
+   [ ! -f "$PNG_ANDROID_PREFIX/include/png.h" ] || \
+   [ ! -f "$PNG_ANDROID_PREFIX/include/pnglibconf.h" ]; then
+    echo "ERROR: missing Android ARM64 libPNG archive or headers."
+    echo "Cross-compile bundled libpng with build-png-android.sh first."
+    exit 2
+fi
+echo "Android libPNG: $PNG_ANDROID_PREFIX/lib/libpng16.a"
+
 echo "=== Known unfinished native-port dependencies ==="
 echo "The desktop editor still needs Android ARM64 builds of GLEW,"
-echo "GLU/GLUT replacements, PNG, JPEG, SuperLU, libmypaint and"
+echo "GLU/GLUT replacements, JPEG, SuperLU, libmypaint and"
 echo "other external libraries. Legacy glMatrixMode/glBegin calls still"
 echo "need a GLES3 implementation. The CMake errors show actual blockers."
 echo "No preview APK will be substituted if configure/compile fails."
@@ -129,6 +141,8 @@ cmake -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DOpenCV_DIR="$OpenCV_DIR" \
     -DTIFF_LIBRARY="$TIFF_ANDROID_PREFIX/lib/libtiff.a" \
     -DTIFF_INCLUDE_DIR="$TIFF_ANDROID_PREFIX/include" \
+    -DPNG_LIBRARY="$PNG_ANDROID_PREFIX/lib/libpng16.a" \
+    -DPNG_PNG_INCLUDE_DIR="$PNG_ANDROID_PREFIX/include" \
     "${QT_CMAKE_ARGS[@]}" \
     -DQT_PATH="$QT_ANDROID_PREFIX" \
     -DWITH_TRANSLATION=OFF \
