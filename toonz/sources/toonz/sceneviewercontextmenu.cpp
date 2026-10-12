@@ -2,6 +2,7 @@
 
 #include "sceneviewer.h"
 #include "sceneviewercontextmenu.h"
+#include "japanesepegbaroverlay.h"
 
 // Toonz includes
 #include "tapp.h"
@@ -38,6 +39,7 @@
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QSignalMapper>
+#include <QInputDialog>
 
 SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
     : QMenu(parent), m_viewer(parent), m_groupIndexToBeEntered(-1) {
@@ -227,6 +229,123 @@ SceneViewerContextMenu::SceneViewerContextMenu(SceneViewer *parent)
   CursorOutlineToggleGui::addCursorOutlineCommand(this);
 
   ViewerIndicatorToggleGui::addViewerIndicatorCommand(this);
+
+
+  // Registration guides are a viewer overlay, independent of the Xsheet
+  // Pegbar columns and the built-in onion skin drawing overlays.
+  if (!parent->isPreviewEnabled()) {
+    using PegBar = JapaneseRegistrationPegBar;
+    auto *previousBar = registrationPegBar(parent, PegBar::Previous);
+    auto *currentBar  = registrationPegBar(parent, PegBar::Current);
+    auto *nextBar     = registrationPegBar(parent, PegBar::Next);
+
+    QMenu *pegBarMenu = addMenu(tr("Japanese Registration Peg Bar"));
+    QAction *showBars = pegBarMenu->addAction(tr("Show Transparent Peg Bars"));
+    showBars->setCheckable(true);
+    showBars->setChecked(parent->property("registrationPegBarsVisible").toBool());
+    auto refreshBars = [parent, previousBar, currentBar, nextBar]() {
+      const bool enabled = parent->property("registrationPegBarsVisible").toBool();
+      currentBar->setVisible(enabled);
+      previousBar->setVisible(
+          enabled && parent->property("registrationPegBarPrevious").toBool());
+      nextBar->setVisible(
+          enabled && parent->property("registrationPegBarNext").toBool());
+      if (enabled) {
+        previousBar->raise();
+        nextBar->raise();
+        currentBar->raise();
+      }
+    };
+    connect(showBars, &QAction::toggled, parent, [parent, refreshBars](bool on) {
+      parent->setProperty("registrationPegBarsVisible", on);
+      refreshBars();
+    });
+
+    QAction *showPrevious = pegBarMenu->addAction(tr("Overlay Previous Peg Bar"));
+    showPrevious->setCheckable(true);
+    showPrevious->setChecked(
+        parent->property("registrationPegBarPrevious").toBool());
+    connect(showPrevious, &QAction::toggled, parent,
+            [parent, refreshBars](bool on) {
+              parent->setProperty("registrationPegBarPrevious", on);
+              refreshBars();
+            });
+
+    QAction *showNext = pegBarMenu->addAction(tr("Overlay Next Peg Bar"));
+    showNext->setCheckable(true);
+    showNext->setChecked(parent->property("registrationPegBarNext").toBool());
+    connect(showNext, &QAction::toggled, parent,
+            [parent, refreshBars](bool on) {
+              parent->setProperty("registrationPegBarNext", on);
+              refreshBars();
+            });
+
+    pegBarMenu->addSeparator();
+    // Moving the artwork itself must go through a stage-object transaction;
+    // do not advertise it until its own undoable implementation is present.
+    QAction *followLayer = pegBarMenu->addAction(
+        tr("Follow Selected Layer / Pegbar"));
+    followLayer->setEnabled(false);
+    followLayer->setToolTip(
+        tr("Requires stage-object transform integration."));
+    QAction *moveLayer = pegBarMenu->addAction(
+        tr("Drag Peg Bar to Move Selected Layer"));
+    moveLayer->setEnabled(false);
+    moveLayer->setToolTip(tr("Requires undoable layer transforms."));
+
+    QMenu *targetMenu = pegBarMenu->addMenu(tr("Drag Target"));
+    QActionGroup *targetGroup = new QActionGroup(targetMenu);
+    targetGroup->setExclusive(true);
+    auto addTarget = [&](const QString &label, PegBar *bar) {
+      QAction *targetAction = targetMenu->addAction(label);
+      targetAction->setCheckable(true);
+      targetGroup->addAction(targetAction);
+      targetAction->setChecked(bar == currentBar);
+      connect(targetAction, &QAction::triggered, parent,
+              [bar, parent]() {
+                parent->setProperty("registrationPegBarsVisible", true);
+                bar->show();
+                bar->raise();
+              });
+    };
+    addTarget(tr("Current Peg Bar (Blue)"), currentBar);
+    addTarget(tr("Previous Peg Bar (Green)"), previousBar);
+    addTarget(tr("Next Peg Bar (Red)"), nextBar);
+
+    QAction *rotateBar = pegBarMenu->addAction(tr("Set Peg Bar Rotation..."));
+    connect(rotateBar, &QAction::triggered, parent, [parent, currentBar]() {
+      bool ok = false;
+      double angle = QInputDialog::getDouble(
+          parent, tr("Peg Bar Rotation"), tr("Angle (degrees):"),
+          currentBar->rotation(), -180.0, 180.0, 1, &ok);
+      if (ok) currentBar->setRotation(angle);
+    });
+
+    QAction *resetPosition = pegBarMenu->addAction(tr("Reset Peg Bar Position"));
+    connect(resetPosition, &QAction::triggered, parent,
+            [currentBar]() { currentBar->resetPosition(); });
+    QAction *resetRotation = pegBarMenu->addAction(tr("Reset Peg Bar Rotation"));
+    connect(resetRotation, &QAction::triggered, parent,
+            [currentBar]() { currentBar->resetRotation(); });
+
+    QMenu *opacityMenu = pegBarMenu->addMenu(
+        tr("Peg Bar Opacity (Previous / Next)"));
+    QActionGroup *opacityGroup = new QActionGroup(opacityMenu);
+    opacityGroup->setExclusive(true);
+    for (int opacity : {20, 35, 50, 70, 100}) {
+      QAction *opacityAction = opacityMenu->addAction(
+          QStringLiteral("%1%").arg(opacity));
+      opacityAction->setCheckable(true);
+      opacityAction->setChecked(previousBar->barOpacity() == opacity);
+      opacityGroup->addAction(opacityAction);
+      connect(opacityAction, &QAction::triggered, parent,
+              [previousBar, nextBar, opacity]() {
+                previousBar->setBarOpacity(opacity);
+                nextBar->setBarOpacity(opacity);
+              });
+    }
+    refreshBars();
+  }
 
   // preview
   if (parent->isPreviewEnabled()) {
