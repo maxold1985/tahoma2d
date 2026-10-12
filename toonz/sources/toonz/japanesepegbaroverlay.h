@@ -4,8 +4,10 @@
 #define JAPANESE_REGISTRATION_PEGBAR_OVERLAY_H
 
 #include <QColor>
+#include <QEvent>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QResizeEvent>
 #include <QWidget>
 #include <QtMath>
 
@@ -22,6 +24,8 @@ public:
     setMouseTracking(true);
     setCursor(Qt::OpenHandCursor);
     setFixedSize(350, 50);
+    m_opacity = frame == Current ? 100 : 35;
+    viewer->installEventFilter(this);
     resetPosition();
     hide();
   }
@@ -53,6 +57,16 @@ public:
   int barOpacity() const { return m_opacity; }
 
 protected:
+  bool eventFilter(QObject *watched, QEvent *event) override {
+    if (watched == parentWidget() && event->type() == QEvent::Resize) {
+      // Preserve the guide's offset from the viewer center on resize.
+      const auto *resize = static_cast<QResizeEvent *>(event);
+      const int dx = (resize->size().width() - resize->oldSize().width()) / 2;
+      if (resize->oldSize().isValid()) move(x() + dx, y());
+    }
+    return QWidget::eventFilter(watched, event);
+  }
+
   void paintEvent(QPaintEvent *) override {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
