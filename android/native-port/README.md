@@ -16,19 +16,23 @@ No APK artifact is published unless a real ELF AArch64 libTahoma2D is
 linked and the generated APK contains that library.
 
 Existing native build blockers include desktop-only dependencies such as
-SuperLU, GLEW, libmypaint and GLU/GLUT, plus old fixed-function
+libmypaint, JPEG and GLU/GLUT, plus old fixed-function
 OpenGL calls (glMatrixMode, glBegin, glOrtho) not available in GLES3.
-Those require further code porting and arm64 third-party builds.
+GLEW is intentionally not discovered on Android because it is a desktop
+OpenGL loader; this does not implement its legacy calls in GLES3. The
+remaining features require further source porting and ARM64 dependencies.
 
 The manual workflow installs JDK 17, SDK 30, NDK r21e, the official
 OpenCV 4.10.0 Android ARM64 SDK (verified against the release SHA-256),
 and Qt 5.15.2 Android including QtScript. It also cross-compiles the repository's
-modified thirdparty/tiff-4.2.0 and bundled libpng-1.6.21 for Android ARM64.
+modified thirdparty/tiff-4.2.0, bundled libpng-1.6.21 and
+SuperLU_4.1 with its reference CBLAS for Android ARM64.
 The modified TIFF source is required because Tahoma2D calls custom TIFFReadRGBAStrip_64 and TIFFReadRGBATile_64 APIs
 that stock libTIFF does not provide. The TIFF build is static with PIC;
 its zlib/Deflate codec is enabled, but JPEG-in-TIFF is not yet enabled.
 
-SECURITY NOTE: bundled libTIFF 4.2.0 and libpng 1.6.21 are old and must
+SECURITY NOTE: bundled libTIFF 4.2.0, libpng 1.6.21 and SuperLU 4.1
+are legacy dependencies and must
 be upgraded or reviewed before public release. When upgrading libTIFF,
 retain and audit Tahoma2D's custom 64-bit RGBA APIs. Do not process
 untrusted TIFF images with this interim port.
@@ -58,6 +62,9 @@ Local invocation (after installing required tools and dependencies):
     export PNG_ANDROID_PREFIX="$PWD/build/android-png-prefix"
     bash android/native-port/build-png-android.sh . \
          build/android-png-build "$PNG_ANDROID_PREFIX"
+    export SUPERLU_ANDROID_PREFIX="$PWD/build/android-superlu-prefix"
+    bash android/native-port/build-superlu-android.sh . \
+         build/android-superlu-build "$SUPERLU_ANDROID_PREFIX"
     bash android/native-port/build-tahoma-android.sh . build/android-arm64
 
 The script must be executed on Linux with CMake 3.30, Ninja,
