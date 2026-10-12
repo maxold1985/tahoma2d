@@ -127,6 +127,28 @@ jobs:
             "$SUPERLU_ANDROID_PREFIX"
           echo "SUPERLU_ANDROID_PREFIX=$SUPERLU_ANDROID_PREFIX" >> "$GITHUB_ENV"
 
+      - name: Cross-compile libjpeg-turbo for Android ARM64
+        shell: bash
+        run: |
+          set -euo pipefail
+          JPEG_ANDROID_PREFIX="$RUNNER_TEMP/jpeg-android-prefix"
+          git clone --depth 1 --branch 3.0.4 https://github.com/libjpeg-turbo/libjpeg-turbo.git "$RUNNER_TEMP/libjpeg-turbo-src"
+          cmake -S "$RUNNER_TEMP/libjpeg-turbo-src" -B "$RUNNER_TEMP/libjpeg-turbo-build" -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-24 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$JPEG_ANDROID_PREFIX" \
+            -DENABLE_SHARED=OFF \
+            -DENABLE_STATIC=ON \
+            -DWITH_SIMD=OFF \
+            -DWITH_JAVA=OFF
+          cmake --build "$RUNNER_TEMP/libjpeg-turbo-build" --parallel 2
+          cmake --install "$RUNNER_TEMP/libjpeg-turbo-build"
+          test -s "$JPEG_ANDROID_PREFIX/lib/libjpeg.a"
+          test -f "$JPEG_ANDROID_PREFIX/include/jpeglib.h"
+          echo "JPEG_ANDROID_PREFIX=$JPEG_ANDROID_PREFIX" >> "$GITHUB_ENV"
+
       - name: CMake configure, compile and deploy actual editor
         shell: bash
         run: |
