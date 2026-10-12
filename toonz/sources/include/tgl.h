@@ -15,6 +15,12 @@
 #include <GL/glut.h>
 #endif
 
+#if defined(__ANDROID__)
+// Android exposes GLES3, not desktop GL/GLU/GLUT compatibility APIs.
+// Fixed function renderer calls still require actual implementation changes.
+#include <GLES3/gl3.h>
+#endif
+
 #ifdef MACOSX
 #include <GLUT/glut.h>
 #define GLUT_NO_LIB_PRAGMA
