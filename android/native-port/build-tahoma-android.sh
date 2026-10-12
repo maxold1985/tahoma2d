@@ -152,7 +152,7 @@ fi
 export PKG_CONFIG_PATH=
 export PKG_CONFIG_LIBDIR="$EXTRA_ANDROID_PREFIX/lib/pkgconfig:$EXTRA_ANDROID_PREFIX/share/pkgconfig"
 export PKG_CONFIG_SYSROOT_DIR=
-for package in liblz4 freetype2 json-c libmypaint; do
+for package in liblz4 freetype2 json-c libdeflate libmypaint; do
     if ! pkg-config --exists "$package"; then
         echo "ERROR: missing ARM64 pkg-config module: $package"
         exit 2
@@ -167,6 +167,12 @@ for name in lz4 lzo2 freetype json-c mypaint; do
 done
 if [ ! -f "$EXTRA_ANDROID_PREFIX/include/lzo/lzoconf.h" ]; then
     echo "ERROR: missing Android LZO headers"
+    exit 2
+fi
+# The image target links libdeflate, not the Android zlib API.
+if [ ! -s "$EXTRA_ANDROID_PREFIX/lib/libdeflate.a" ] || \
+   [ ! -f "$EXTRA_ANDROID_PREFIX/include/libdeflate.h" ]; then
+    echo "ERROR: missing Android ARM64 libdeflate archive or headers."
     exit 2
 fi
 if [ ! -s "$JPEG_ANDROID_PREFIX/lib/libturbojpeg.a" ] || \
@@ -218,6 +224,7 @@ cmake --fresh -S "$SRC/toonz/sources" -B "$BUILD" -G Ninja \
     -DTURBOJPEG_LIB:FILEPATH="$JPEG_ANDROID_PREFIX/lib/libturbojpeg.a" \
     -DLZO_LIBRARY:FILEPATH="$EXTRA_ANDROID_PREFIX/lib/liblzo2.a" \
     -DLZO_INCLUDE_DIR:PATH="$EXTRA_ANDROID_PREFIX/include/lzo" \
+    -DDEFLATE_LIB:FILEPATH="$EXTRA_ANDROID_PREFIX/lib/libdeflate.a" \
     -DCMAKE_C_FLAGS="-I$EXTRA_ANDROID_PREFIX/include" \
     -DCMAKE_CXX_FLAGS="-I$EXTRA_ANDROID_PREFIX/include" \
     -DPNG_LIBRARY="$PNG_ANDROID_PREFIX/lib/libpng16.a" \
